@@ -28,3 +28,8 @@ int main( int argc, char* argv[] ) {
     printf( "AES.Enc( k, m ) != c\n" );
   }
 }
+
+
+aes_gf28_t xtime( aes_gf28_t a ){
+  
+}
