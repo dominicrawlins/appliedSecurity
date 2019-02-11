@@ -9,6 +9,8 @@
 
 #define matrixsize 16
 
+#define TEST 1
+
 aes_gf28_t xtime( aes_gf28_t a );
 aes_gf28_t sbox( aes_gf28_t a );
 aes_gf28_t inverse( aes_gf28_t a );
@@ -20,13 +22,33 @@ void aes_enc_rnd_sub( aes_gf28_t* s );
 void aes_enc_rnd_row( aes_gf28_t* s );
 void aes_enc_rnd_mix( aes_gf28_t* s );
 aes_gf28_t roundkey(aes_gf28_t previous);
+void test();
+void testinverse();
 
-
+//run with argument 1 to test
 int main( int argc, char* argv[] ) {
   aes_gf28_t k[ 16 ] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
   aes_gf28_t m[ 16 ] = { 0x32, 0x43, 0xF6, 0xA8, 0x88, 0x5A, 0x30, 0x8D, 0x31, 0x31, 0x98, 0xA2, 0xE0, 0x37, 0x07, 0x34 };
   aes_gf28_t c[ 16 ] = { 0x39, 0x25, 0x84, 0x1D, 0x02, 0xDC, 0x09, 0xFB, 0xDC, 0x11, 0x85, 0x97, 0x19, 0x6A, 0x0B, 0x32 };
   aes_gf28_t t[ 16 ];
+
+
+  int isTest = atoi(argv[1]);
+  if(isTest == TEST){
+    printf("\n\n------------------\nrunning testing\n------------------\n\n\n\n");
+    test();
+  }
+  else{
+    aes_enc(t, m, k);
+    if( !memcmp( t, c, 16 * sizeof( uint8_t ) ) ) {
+      printf( "encryption correct\n" );
+    }
+    else {
+      printf( "encryption incorrect\n" );
+    }
+
+
+  }
 
 
 /*
@@ -45,14 +67,6 @@ int main( int argc, char* argv[] ) {
   aes_gf28_t an = sbox(a);
   printf("%x\n", an);
   */
-
-  aes_enc(t, m, k);
-  if( !memcmp( t, c, 16 * sizeof( uint8_t ) ) ) {
-    printf( "encryption correct\n" );
-  }
-  else {
-    printf( "encryption incorrect\n" );
-  }
 
 
 
@@ -201,4 +215,25 @@ void aes_enc_rnd_mix( aes_gf28_t* s ){
       s[j*4 + i] = end;
     }
   }
+}
+
+void test(){
+  testinverse();
+}
+
+void testinverse(){
+  aes_gf28_t test[2] = {0x95, 0x58};
+
+  aes_gf28_t expectedanswer[2] = {0x8A, 0x18};
+
+  int testspassed = 0;
+
+  for(int i = 0; i < 2; i++){
+    aes_gf28_t givenanswer = inverse(test[i]);
+    if(givenanswer == expectedanswer[i]){
+      testspassed++;
+    }
+  }
+  printf("\n\n----------------------\ninverse function tests passed: %d/2\n\n", testspassed);
+
 }
