@@ -24,6 +24,7 @@ void aes_enc_rnd_mix( aes_gf28_t* s );
 aes_gf28_t roundkey(aes_gf28_t previous);
 void test();
 void testinverse();
+void testsbox();
 
 //run with argument 1 to test
 int main( int argc, char* argv[] ) {
@@ -219,6 +220,7 @@ void aes_enc_rnd_mix( aes_gf28_t* s ){
 
 void test(){
   testinverse();
+  testsbox();
 }
 
 void testinverse(){
@@ -235,5 +237,22 @@ void testinverse(){
     }
   }
   printf("\n\n----------------------\ninverse function tests passed: %d/2\n\n", testspassed);
+
+}
+
+void testsbox(){
+  aes_gf28_t test[2] = {0x58, 0x70};
+
+  aes_gf28_t expectedanswer[2] = {0x6A, 0x51};
+
+  int testspassed = 0;
+
+  for(int i = 0; i < 2; i++){
+    aes_gf28_t givenanswer = sbox(test[i]);
+    if(givenanswer == expectedanswer[i]){
+      testspassed++;
+    }
+  }
+  printf("sbox function tests passed: %d/2\n\n", testspassed);
 
 }
