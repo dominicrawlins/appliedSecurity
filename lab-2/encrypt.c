@@ -108,14 +108,16 @@ void aes_enc_key_update(aes_gf28_t* k, aes_gf28_t rc){
   aes_gf28_t newkey[matrixsize];
   newkey[0] = rc ^ sbox(k[13]) ^ k[0];
   for(int row = 1; row < matrixsize/4; row++){
-    newkey[row*4] = sbox((row*4 + 7)%16) ^ k[row*4];
+    newkey[row] = sbox(k[12+((row+1)%4)]) ^ k[row];
   }
   for(int column = 1; column < matrixsize/4; column++){
     for(int row = 0; row < matrixsize/4; row++){
-      newkey[row*4 + column] = k[row*4 + column] ^ newkey[row+4 + column - 1];
+      newkey[row + column*4] = k[row + column*4] ^ newkey[row+ (column-1)*4];
     }
   }
-  k = newkey;
+  for(int i = 0; i < matrixsize; i++){
+    k[i] = newkey[i];
+  }
 }
 
 
@@ -200,30 +202,33 @@ void aes_enc_rnd_row( aes_gf28_t* s ){
   for(int i = 0; i < matrixsize/4; i++){
     aes_gf28_t row[4];
     for(int j = 0; j < 4; j++){
-      row[j] = s[i*4 + j];
+      row[j] = s[j*4 + i];
     }
     int pushforward = 4-i;
     for(int j = 0; j < 4; j++){
       int newmatrixposition = (j+pushforward)%4;
-      s[newmatrixposition] = row[j];
+      s[newmatrixposition*4 + i] = row[j];
     }
   }
 }
 
 void aes_enc_rnd_mix( aes_gf28_t* s ){
+  aes_gf28_t newmatrix[16];
   for(int i = 0; i < matrixsize/4; i++){
-    aes_gf28_t column[4];
-    for(int j = 0; j < matrixsize/4; j++){
-      column[j] = s[j*4 + i];
-    }
-    aes_gf28_t mixmatrix[4] = {0x02, 0x03, 0x01, 0x01};
-    for(int j = 0; j < matrixsize/4; j++){
-      aes_gf28_t end = 0;
-      for(int element = 0; element < matrixsize/4; element++){
-        end ^= (column[element] ^ mixmatrix[((4+element - j)%4)]);
+    int columnoffset = i*4;
+    aes_gf28_t xorarray[4] = {0x02, 0x03, 0x01, 0x01};
+    for(int row = 0; row < matrixsize/4; row++){
+      aes_gf28_t newvalue = 0x00;
+      for(int loopno = 0; loopno < 4; loopno++){
+        aes_gf28_t a = xorarray[(4-row + loopno)%4];
+        aes_gf28_t b = s[columnoffset+loopno];
+        newvalue ^= aes_gf28_mul(a,b);
       }
-      s[j*4 + i] = end;
+      newmatrix[columnoffset + row] = newvalue;
     }
+  }
+  for(int i = 0; i < 16; i++){
+    s[i] = newmatrix[i];
   }
 }
 
@@ -287,7 +292,6 @@ void testroundkeyupdate(){
   aes_gf28_t rc = 0x01;
 
   aes_enc_key_update(key, rc);
-
 
   int isRight = testmatrices(key, correctanswer);
 
