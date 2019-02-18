@@ -35,6 +35,7 @@ void testshiftrows();
 void testmixcolumns();
 int testmatrices(aes_gf28_t* a, aes_gf28_t* b);
 
+
 //run with argument 1 to test
 int main( int argc, char* argv[] ) {
   aes_gf28_t k[ 16 ] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
@@ -42,19 +43,29 @@ int main( int argc, char* argv[] ) {
   aes_gf28_t c[ 16 ] = { 0x39, 0x25, 0x84, 0x1D, 0x02, 0xDC, 0x09, 0xFB, 0xDC, 0x11, 0x85, 0x97, 0x19, 0x6A, 0x0B, 0x32 };
   aes_gf28_t t[ 16 ];
 
+  int isTest = 0;
+  if(argc == 2){
+    isTest = atoi(argv[1]);
+  }
 
-  int isTest = atoi(argv[1]);
   if(isTest == TEST){
     printf("\n\n------------------\nrunning testing\n------------------\n\n\n\n");
     test();
   }
   else{
     aes_enc(t, m, k);
+    printf("\n");
+    for(int i = 0; i< 16; i++){
+      printf("%x\n", t[i]);
+    }
     if( !memcmp( t, c, 16 * sizeof( uint8_t ) ) ) {
       printf( "encryption correct\n" );
     }
     else {
       printf( "encryption incorrect\n" );
+      for(int i = 0; i < 16; i++){
+        printf("expected value: %x, actual value: %x\n", c[i], t[i]);
+      }
     }
 
 
@@ -95,12 +106,15 @@ void aes_enc( uint8_t* c, uint8_t* m, uint8_t* k ){
     aes_enc_rnd_mix(c);
     aes_enc_key_update(k, rc);
     aes_enc_add_rnd_key(c, k);
-    roundkey(rc);
+    rc = roundkey(rc);
   }
   aes_enc_rnd_sub(c);
   aes_enc_rnd_row(c);
   aes_enc_key_update(k, rc);
   aes_enc_add_rnd_key(c, k);
+  for(int i = 0; i < 16; i++){
+    printf("%x\n", c[i]);
+  }
 }
 
 
