@@ -11,6 +11,9 @@
 
 #define TEST 1
 
+#define TRUE 1
+#define FALSE 0
+
 aes_gf28_t xtime( aes_gf28_t a );
 aes_gf28_t sbox( aes_gf28_t a );
 aes_gf28_t inverse( aes_gf28_t a );
@@ -25,6 +28,12 @@ aes_gf28_t roundkey(aes_gf28_t previous);
 void test();
 void testinverse();
 void testsbox();
+void testroundkeyupdate();
+void testaddroundkey();
+void testsubbytes();
+void testshiftrows();
+void testmixcolumns();
+int testmatrices(aes_gf28_t* a, aes_gf28_t* b);
 
 //run with argument 1 to test
 int main( int argc, char* argv[] ) {
@@ -221,6 +230,11 @@ void aes_enc_rnd_mix( aes_gf28_t* s ){
 void test(){
   testinverse();
   testsbox();
+  testroundkeyupdate();
+  testaddroundkey();
+  testsubbytes();
+  testshiftrows();
+  testmixcolumns();
 }
 
 void testinverse(){
@@ -236,7 +250,12 @@ void testinverse(){
       testspassed++;
     }
   }
-  printf("\n\n----------------------\ninverse function tests passed: %d/2\n\n", testspassed);
+  if(testspassed == 2){
+    printf("inverse: PASSED\n");
+  }
+  else{
+    printf("\ninverse: FAILED\n\n");
+  }
 
 }
 
@@ -253,6 +272,105 @@ void testsbox(){
       testspassed++;
     }
   }
-  printf("sbox function tests passed: %d/2\n\n", testspassed);
+  if(testspassed == 2){
+    printf("sbox: PASSED\n");
+  }
+  else{
+    printf("\nsbox: FAILED\n\n");
+  }
 
+}
+
+void testroundkeyupdate(){
+  aes_gf28_t key[16] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
+  aes_gf28_t correctanswer[16] = {0xa0,0xfa,0xfe,0x17, 0x88, 0x54,0x2c, 0xb1,0x23, 0xa3,0x39, 0x39,  0x2a,    0x6c,    0x76,    0x05};
+  aes_gf28_t rc = 0x01;
+
+  aes_enc_key_update(key, rc);
+
+
+  int isRight = testmatrices(key, correctanswer);
+
+  if(isRight){
+    printf("round key update: PASSED\n");
+  }
+  else{
+    printf("\nround key update: FAILED\n\n");
+  }
+}
+
+void testaddroundkey(){
+  aes_gf28_t first[16] = { 0x32, 0x43, 0xF6, 0xA8, 0x88, 0x5A, 0x30, 0x8D, 0x31, 0x31, 0x98, 0xA2, 0xE0, 0x37, 0x07, 0x34 };
+  aes_gf28_t key[16] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
+  aes_gf28_t after[16] = {  0x19, 0x3d, 0xe3, 0xbe, 0xa0, 0xf4, 0xe2, 0x2b, 0x9a, 0xc6, 0x8d, 0x2a, 0xe9, 0xf8, 0x48, 0x08};
+
+  aes_enc_add_rnd_key(first, key);
+
+  int isRight = testmatrices(first, after);
+
+  if(isRight){
+    printf("add round key: PASSED\n");
+  }
+  else{
+    printf("\nadd round key: FAILED\n\n");
+  }
+}
+
+void testsubbytes(){
+  aes_gf28_t c[16] = {  0x19, 0x3d, 0xe3, 0xbe, 0xa0, 0xf4, 0xe2, 0x2b, 0x9a, 0xc6, 0x8d, 0x2a, 0xe9, 0xf8, 0x48, 0x08};
+  aes_gf28_t answer[16] = {0xd4, 0x27, 0x11, 0xae, 0xe0, 0xbf, 0x98, 0xf1, 0xb8, 0xb4, 0x5d, 0xe5, 0x1e, 0x41, 0x52, 0x30};
+
+  aes_enc_rnd_sub(c);
+
+  int isRight = testmatrices(c, answer);
+
+  if(isRight){
+    printf("sub bytes: PASSED\n");
+  }
+  else{
+    printf("\nsub bytes: FAILED\n\n");
+  }
+}
+
+void testshiftrows(){
+  aes_gf28_t c[16] = {0xd4, 0x27, 0x11, 0xae, 0xe0, 0xbf, 0x98, 0xf1, 0xb8, 0xb4, 0x5d, 0xe5, 0x1e, 0x41, 0x52, 0x30};
+  aes_gf28_t answer[16] = {0xd4, 0xbf, 0x5d, 0x30, 0xe0, 0xb4, 0x52, 0xae, 0xb8, 0x41, 0x11, 0xf1, 0x1e, 0x27, 0x98, 0xe5};
+
+  aes_enc_rnd_row(c);
+
+  int isRight = testmatrices(c, answer);
+
+  if(isRight){
+    printf("shift rows: PASSED\n");
+  }
+  else{
+    printf("\nshift rows: FAILED\n\n");
+  }
+
+}
+
+void testmixcolumns(){
+  aes_gf28_t c[16] = {0xd4, 0xbf, 0x5d, 0x30, 0xe0, 0xb4, 0x52, 0xae, 0xb8, 0x41, 0x11, 0xf1, 0x1e, 0x27, 0x98, 0xe5};
+  aes_gf28_t answer[16] = {0x04, 0x66, 0x81, 0xe5, 0xe0, 0xcb, 0x19, 0x9a, 0x48, 0xf8, 0xd3, 0x7a, 0x28, 0x06, 0x26, 0x4c};
+
+  aes_enc_rnd_mix(c);
+
+  int isRight = testmatrices(c, answer);
+
+  if(isRight){
+    printf("mix columns: PASSED\n");
+  }
+  else{
+    printf("\nmix columns: FAILED\n\n");
+  }
+}
+
+int testmatrices(aes_gf28_t* a, aes_gf28_t* b){
+  int isRight = TRUE;
+  for(int i = 0; i < 16; i++){
+    if(!(a[i] == b[i])){
+      isRight = FALSE;
+    }
+  }
+  return isRight;
 }
