@@ -54,10 +54,6 @@ int main( int argc, char* argv[] ) {
   }
   else{
     aes_enc(t, m, k);
-    printf("\n");
-    for(int i = 0; i< 16; i++){
-      printf("%x\n", t[i]);
-    }
     if( !memcmp( t, c, 16 * sizeof( uint8_t ) ) ) {
       printf( "encryption correct\n" );
     }
@@ -95,8 +91,10 @@ int main( int argc, char* argv[] ) {
 }
 
 
-void aes_enc( uint8_t* c, uint8_t* m, uint8_t* k ){
-  c = m;
+void aes_enc( aes_gf28_t* c, aes_gf28_t* m, aes_gf28_t* k ){
+  for(int i = 0; i< matrixsize; i++){
+    c[i] = m[i];
+  }
   aes_enc_add_rnd_key(c, k);
 
   aes_gf28_t rc = 0x01;
@@ -112,9 +110,6 @@ void aes_enc( uint8_t* c, uint8_t* m, uint8_t* k ){
   aes_enc_rnd_row(c);
   aes_enc_key_update(k, rc);
   aes_enc_add_rnd_key(c, k);
-  for(int i = 0; i < 16; i++){
-    printf("%x\n", c[i]);
-  }
 }
 
 
