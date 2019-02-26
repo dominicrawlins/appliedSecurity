@@ -1,10 +1,11 @@
 # Copyright (C) 2018 Daniel Page <csdsp@bristol.ac.uk>
 #
-# Use of this source code is restricted per the CC BY-NC-ND license, a copy of 
-# which can be found via http://creativecommons.org (and should be included as 
+# Use of this source code is restricted per the CC BY-NC-ND license, a copy of
+# which can be found via http://creativecommons.org (and should be included as
 # LICENSE.txt within the associated archive or repository).
 
-import sys, subprocess
+import sys, subprocess, time
+
 
 def interact( G ) :
   # send      G      to   attack target
@@ -19,25 +20,40 @@ def interact( G ) :
   return ( t, r )
 
 def attack() :
-  # select a hard-coded guess ...
 
-  G = 'guess'
+    with open('words.txt') as f:
+        words = f.readlines()
 
-  # ... then interact with the attack target
+    counter = 0
+    for word in words:
+        if(len(word) < 10):
+          G = word
 
-  ( t, r ) = interact( G )
+          ( t, r ) = interact( G )
+          # print all of the inputs and outputs
 
-  # print all of the inputs and outputs
+          print 'G = %s' % ( G )
+          print 't = %d' % ( t )
+          print 'r = %d' % ( r )
+          print ''
 
-  print 'G = %s' % ( G )
-  print 't = %d' % ( t )
-  print 'r = %d' % ( r )
+
+
+          if(r == 1):
+              return
+
+          if(counter == 1000):
+              print(counter)
+
+          counter = counter + 1
+
+
 
 if ( __name__ == '__main__' ) :
   # produce a sub-process representing the attack target
 
   target = subprocess.Popen( args   = sys.argv[ 1 ],
-                             stdout = subprocess.PIPE, 
+                             stdout = subprocess.PIPE,
                              stdin  = subprocess.PIPE )
 
   # construct handles to attack target standard input and output
