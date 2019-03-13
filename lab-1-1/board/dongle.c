@@ -36,9 +36,21 @@ int main( int argc, char* argv[] ) {
     int n = strlen( x );
 
 
-    int octetstr_rd( uint8_t* r, int n_r );
+    int octetstr_rd( uint8_t* r, int n_r ){
+      if( scale_uart_rd_avail() == true){
+        for(int i = 0; i < n_r; i++){
+          r[i] = scale_uart_rd(SCALE_UART_MODE_NON_BLOCKING);
+        }
+        return 1;
+      }
+      return 0;
+    }
 
-    void octetstr_wr( const uint8_t* x, int n_x );
+    void octetstr_wr( const uint8_t* x, int n_x ){
+      if( scale_uart_wr_avail() == true){
+        scale_uart_wr(SCALE_UART_MODE_NON_BLOCKING, r[n_r]);
+      }
+    }
   }
 
   return 0;
