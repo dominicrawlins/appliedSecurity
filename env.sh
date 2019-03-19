@@ -1,5 +1,5 @@
-export PATH="${PATH}:/opt/gcc-arm-none-eabi/7-2017-q4-major/bin"
-export PATH="${PATH}:/opt/lpc21isp/bin"
+export PATH="${PATH}:/opt/gcc-arm-none-eabi-7-2018-q2-update/bin"
+export PATH="${PATH}:/opt/lpc21isp-1.97/bin"
 export PATH="${PATH}:/opt/picoscope/bin"
 
 which arm-none-eabi-gcc
