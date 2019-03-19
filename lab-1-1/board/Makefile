@@ -27,9 +27,9 @@ program-${PROJECT}-term :
 	@putty -serial -sercfg 9600,8,n,1,N /dev/scale-board
 
 emulate-${PROJECT}      :
-	@python -O emulator.py --host 127.0.0.1 --port 1234 --file ${PROJECT}.hex
+	@python2 -O emulator.py --host 127.0.0.1 --port 1234 --file ${PROJECT}.hex
 emulate-${PROJECT}-term :
 	@putty -raw -P 1234 127.0.0.1
 
 client       :
-	@python client.py '04:DEADBEEF'
+	@python2 client.py '04:DEADBEEF'
