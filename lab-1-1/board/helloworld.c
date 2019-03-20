@@ -48,6 +48,8 @@ uint8_t octetstr_rd( uint8_t* r, int n_r ){
   }
   scale_uart_rd(SCALE_UART_MODE_BLOCKING); //CR
   scale_uart_rd(SCALE_UART_MODE_BLOCKING); //LF
+  scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0D');//CR  for board & emulator
+  scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0A');//LF  for emulator
   return size;
 }
 
@@ -62,6 +64,16 @@ void octetstr_wr( const uint8_t* x, uint8_t n_x ){
   scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0D');//CR  for board & emulator
   scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0A');//LF  for emulator
 
+}
+
+void reverseBytes(uint8_t* bytes, uint8_t size){
+  uint8_t newBytes[size];
+  for(int i = 0; i < size; i++){
+    newBytes[size - i - 1] = (uint8_t)bytes[i];
+  }
+  for(int i = 0; i < size; i++){
+    bytes[i] = (uint8_t)newBytes[i];
+  }
 }
 
 int main( int argc, char* argv[] ) {
@@ -95,11 +107,12 @@ int main( int argc, char* argv[] ) {
 }
 */
 
-// uint8_t writeString[5] = {0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
-// //char done = octetstr_rd(writeString, 5);
-// octetstr_wr( writeString, 0x05);
+uint8_t writeString[5] = {0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
+//char done = octetstr_rd(writeString, 5);
+octetstr_wr( writeString, 0x05);
 uint8_t readString[128];
-uint8_t bytesRead = octetstr_rd(readString, 2);
+uint8_t bytesRead = octetstr_rd(readString, 20);
+reverseBytes(readString, bytesRead);
 octetstr_wr(readString, bytesRead);
 //if(done == 1){
 //octetstr_wr(&string, 5);
