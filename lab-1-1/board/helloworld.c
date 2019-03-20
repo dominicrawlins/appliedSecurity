@@ -47,7 +47,7 @@ uint8_t octetstr_rd( uint8_t* r, int n_r ){
     r[i] = (charToHex(firstCharacter) * 0x10) + charToHex(secondCharacter);
   }
   scale_uart_rd(SCALE_UART_MODE_BLOCKING); //CR
-  scale_uart_rd(SCALE_UART_MODE_BLOCKING); //LF
+//  scale_uart_rd(SCALE_UART_MODE_BLOCKING); //LF
   scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0D');//CR  for board & emulator
   scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0A');//LF  for emulator
   return size;
@@ -69,7 +69,7 @@ void octetstr_wr( const uint8_t* x, uint8_t n_x ){
 void reverseBytes(uint8_t* bytes, uint8_t size){
   uint8_t newBytes[size];
   for(int i = 0; i < size; i++){
-    newBytes[size - i - 1] = (uint8_t)bytes[i];
+    newBytes[size - i - 1] = (((uint8_t)bytes[i] % 16)*16) + ((uint8_t)bytes[i]/16);
   }
   for(int i = 0; i < size; i++){
     bytes[i] = (uint8_t)newBytes[i];
