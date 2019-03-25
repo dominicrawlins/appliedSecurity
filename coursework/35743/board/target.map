@@ -1,7 +1,7 @@
 Archive member included to satisfy reference by file (symbol)
 
 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(scale.o)
-                              /tmp/ccpDwDwi.o (scale_gpio_wr)
+                              /tmp/ccHB5TeI.o (scale_gpio_wr)
 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(bsp.o)
                               /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(scale.o) (scale_conf)
 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(lpc13xx.o)
@@ -23,7 +23,7 @@ ram              0x0000000010000000 0x0000000000002000 xrw
 
 Linker script and memory map
 
-LOAD /tmp/ccpDwDwi.o
+LOAD /tmp/ccHB5TeI.o
 LOAD /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a
 START GROUP
 LOAD /opt/gcc-arm-none-eabi-7-2018-q2-update/bin/../lib/gcc/arm-none-eabi/7.3.1/thumb/v7-m/libgcc.a
@@ -31,7 +31,7 @@ LOAD /opt/gcc-arm-none-eabi-7-2018-q2-update/bin/../lib/gcc/arm-none-eabi/7.3.1/
 END GROUP
                 0x0000000000000000                . = 0x0
 
-.text           0x0000000000000000      0x714
+.text           0x0000000000000000      0x750
                 0x0000000000000000                __head_text = .
  *(.data.__irq_handler)
  .data.__irq_handler
@@ -43,65 +43,67 @@ END GROUP
                 0x0000000000000040                __irq_handler_nul
                 0x0000000000000042                __irq_handler_rst
  *(.text*)
- .text          0x0000000000000088      0x15c /tmp/ccpDwDwi.o
+ .text          0x0000000000000088      0x136 /tmp/ccHB5TeI.o
                 0x0000000000000088                charToHex
                 0x00000000000000ae                hexToChar
                 0x00000000000000ba                octetstr_rd
                 0x000000000000013a                octetstr_wr
-                0x00000000000001a8                reverseBytes
- .text.startup  0x00000000000001e4       0x40 /tmp/ccpDwDwi.o
-                0x00000000000001e4                main
- .text          0x0000000000000224      0x4dc /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(scale.o)
-                0x0000000000000224                scale_delay_us
-                0x0000000000000240                scale_delay_ms
-                0x0000000000000258                scale_tsc
-                0x0000000000000268                scale_gpio_rd
-                0x00000000000002a4                scale_gpio_wr
-                0x00000000000002f4                scale_uart_rd_avail
-                0x0000000000000304                scale_uart_wr_avail
-                0x0000000000000314                scale_init
-                0x00000000000005c8                scale_uart_rd
-                0x00000000000005e0                scale_uart_wr
-                0x00000000000005f8                scale_i2c_fsm
-                0x00000000000006ec                scale_i2c_rd
-                0x00000000000006f6                scale_i2c_wr
- .text          0x0000000000000700        0x0 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(bsp.o)
- .text          0x0000000000000700        0x0 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(lpc13xx.o)
- .text.lpc13xx  0x0000000000000700        0x8 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(lpc13xx.o)
-                0x0000000000000700                lpc13xx_irq_enable
-                0x0000000000000704                lpc13xx_irq_unable
- .text          0x0000000000000708        0x0 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(crt0.o)
- .text.__start  0x0000000000000708        0xa /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(crt0.o)
-                0x0000000000000708                __start
+                0x00000000000001ba                aes_init
+                0x00000000000001bc                aes
+ *fill*         0x00000000000001be        0x2 
+ .text.startup  0x00000000000001c0       0xa0 /tmp/ccHB5TeI.o
+                0x00000000000001c0                main
+ .text          0x0000000000000260      0x4dc /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(scale.o)
+                0x0000000000000260                scale_delay_us
+                0x000000000000027c                scale_delay_ms
+                0x0000000000000294                scale_tsc
+                0x00000000000002a4                scale_gpio_rd
+                0x00000000000002e0                scale_gpio_wr
+                0x0000000000000330                scale_uart_rd_avail
+                0x0000000000000340                scale_uart_wr_avail
+                0x0000000000000350                scale_init
+                0x0000000000000604                scale_uart_rd
+                0x000000000000061c                scale_uart_wr
+                0x0000000000000634                scale_i2c_fsm
+                0x0000000000000728                scale_i2c_rd
+                0x0000000000000732                scale_i2c_wr
+ .text          0x000000000000073c        0x0 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(bsp.o)
+ .text          0x000000000000073c        0x0 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(lpc13xx.o)
+ .text.lpc13xx  0x000000000000073c        0x8 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(lpc13xx.o)
+                0x000000000000073c                lpc13xx_irq_enable
+                0x0000000000000740                lpc13xx_irq_unable
+ .text          0x0000000000000744        0x0 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(crt0.o)
+ .text.__start  0x0000000000000744        0xa /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(crt0.o)
+                0x0000000000000744                __start
  *(.text.*)
  *(.rodata*)
  *(.rodata.*)
-                0x0000000000000714                . = ALIGN (0x4)
- *fill*         0x0000000000000712        0x2 
-                0x0000000000000714                __foot_text = .
+                0x0000000000000750                . = ALIGN (0x4)
+ *fill*         0x000000000000074e        0x2 
+                0x0000000000000750                __foot_text = .
 
-.glue_7         0x0000000000000714        0x0
- .glue_7        0x0000000000000714        0x0 linker stubs
+.glue_7         0x0000000000000750        0x0
+ .glue_7        0x0000000000000750        0x0 linker stubs
 
-.glue_7t        0x0000000000000714        0x0
- .glue_7t       0x0000000000000714        0x0 linker stubs
+.glue_7t        0x0000000000000750        0x0
+ .glue_7t       0x0000000000000750        0x0 linker stubs
 
-.vfp11_veneer   0x0000000000000714        0x0
- .vfp11_veneer  0x0000000000000714        0x0 linker stubs
+.vfp11_veneer   0x0000000000000750        0x0
+ .vfp11_veneer  0x0000000000000750        0x0 linker stubs
 
-.v4_bx          0x0000000000000714        0x0
- .v4_bx         0x0000000000000714        0x0 linker stubs
+.v4_bx          0x0000000000000750        0x0
+ .v4_bx         0x0000000000000750        0x0 linker stubs
 
-.iplt           0x0000000000000714        0x0
- .iplt          0x0000000000000714        0x0 /tmp/ccpDwDwi.o
+.iplt           0x0000000000000750        0x0
+ .iplt          0x0000000000000750        0x0 /tmp/ccHB5TeI.o
 
-.rel.dyn        0x0000000000000714        0x0
- .rel.iplt      0x0000000000000714        0x0 /tmp/ccpDwDwi.o
+.rel.dyn        0x0000000000000750        0x0
+ .rel.iplt      0x0000000000000750        0x0 /tmp/ccHB5TeI.o
 
-.data           0x0000000010000000       0x2c load address 0x0000000000000720
+.data           0x0000000010000000       0x2c load address 0x0000000000000750
                 0x0000000010000000                __head_data = .
  *(.data)
- .data          0x0000000010000000        0x0 /tmp/ccpDwDwi.o
+ .data          0x0000000010000000        0x0 /tmp/ccHB5TeI.o
  .data          0x0000000010000000        0x4 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(scale.o)
                 0x0000000010000000                SCALE_CONF
  .data          0x0000000010000004        0x0 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(bsp.o)
@@ -122,13 +124,13 @@ END GROUP
                 0x000000001000002c                . = ALIGN (0x4)
                 0x000000001000002c                __foot_data = .
 
-.igot.plt       0x000000001000002c        0x0 load address 0x000000000000074c
- .igot.plt      0x000000001000002c        0x0 /tmp/ccpDwDwi.o
+.igot.plt       0x000000001000002c        0x0 load address 0x000000000000077c
+ .igot.plt      0x000000001000002c        0x0 /tmp/ccHB5TeI.o
 
-.bss            0x0000000010000030        0x4 load address 0x0000000000000750
+.bss            0x0000000010000030        0x4 load address 0x0000000000000780
                 0x0000000010000030                __head_bss = .
  *(.bss)
- .bss           0x0000000010000030        0x0 /tmp/ccpDwDwi.o
+ .bss           0x0000000010000030        0x0 /tmp/ccHB5TeI.o
  .bss           0x0000000010000030        0x0 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(scale.o)
  .bss           0x0000000010000030        0x0 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(bsp.o)
  .bss           0x0000000010000030        0x0 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(lpc13xx.o)
@@ -139,13 +141,13 @@ END GROUP
  COMMON         0x0000000010000030        0x4 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(bsp.o)
                 0x0000000010000030                scale_conf
                 [!provide]                        PROVIDE (__load_text = LOADADDR (.text))
-                0x0000000000000720                PROVIDE (__load_data = LOADADDR (.data))
-                0x0000000000000750                PROVIDE (__load_bss = LOADADDR (.bss))
+                0x0000000000000750                PROVIDE (__load_data = LOADADDR (.data))
+                0x0000000000000780                PROVIDE (__load_bss = LOADADDR (.bss))
                 0x0000000010002000                PROVIDE (__tos = (ORIGIN (ram) + LENGTH (ram)))
-OUTPUT(helloworld.elf elf32-littlearm)
+OUTPUT(target.elf elf32-littlearm)
 
 .comment        0x0000000000000000       0x7f
- .comment       0x0000000000000000       0x7f /tmp/ccpDwDwi.o
+ .comment       0x0000000000000000       0x7f /tmp/ccHB5TeI.o
                                          0x80 (size before relaxing)
  .comment       0x000000000000007f       0x80 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(scale.o)
  .comment       0x000000000000007f       0x80 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(bsp.o)
@@ -153,7 +155,7 @@ OUTPUT(helloworld.elf elf32-littlearm)
 .ARM.attributes
                 0x0000000000000000       0x31
  .ARM.attributes
-                0x0000000000000000       0x33 /tmp/ccpDwDwi.o
+                0x0000000000000000       0x33 /tmp/ccHB5TeI.o
  .ARM.attributes
                 0x0000000000000033       0x33 /home/dominic/appliedSecurity/scale-hw/target/lpc1313fbd48/build/lib/libscale.a(scale.o)
  .ARM.attributes

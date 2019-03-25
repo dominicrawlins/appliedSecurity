@@ -107,9 +107,9 @@ int main( int argc, char* argv[] ) {
 }
 */
 
-uint8_t writeString[5] = {0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
+//uint8_t writeString[5] = {0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
 //char done = octetstr_rd(writeString, 5);
-octetstr_wr( writeString, 0x05);
+//octetstr_wr( writeString, 0x05);
 uint8_t readString[128];
 uint8_t bytesRead = octetstr_rd(readString, 20);
 reverseBytes(readString, bytesRead);
