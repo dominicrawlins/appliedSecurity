@@ -316,6 +316,7 @@ int main( int argc, char* argv[] ) {
         aes     ( c, m, k, r );
         scale_gpio_wr( SCALE_GPIO_PIN_TRG, false );
         octetstr_wr( c, SIZEOF_BLK );
+        break;
       }
       case 3 : {
         uint8_t returnthatstring[10];
