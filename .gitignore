@@ -2,4 +2,5 @@ scale-hw
 env.sh
 lab-1-1/board/Makefile
 coursework/35743/board/Makefile
-coursework/35743/scope/traces.dat
+coursework/35743/scope/dantraces.dat
+coursework/35743/scope/domtraces.dat
