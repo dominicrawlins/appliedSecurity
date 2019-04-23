@@ -10,7 +10,7 @@ ifeq "${DEVICE}" ""
   $(warning /dev/scale-scope does not exist, or cannot be read from or written to)
 endif
 
-TRACES = traces.dat
+TRACES = dantraces.dat
 
 attack-35743    :
 	@./35743.elf
@@ -18,3 +18,4 @@ attack-35743-ld :
 	@./35743.elf --traces-ld ${TRACES}
 attack-35743-st :
 	@./35743.elf --traces-st ${TRACES}
+

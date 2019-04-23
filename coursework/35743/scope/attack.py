@@ -33,6 +33,7 @@ sbox = [0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 
 ## \return    C a t-by-16 matrix of AES-128 ciphertexts
 ## \return    T a t-by-s  matrix of samples, i.e., the traces
 
+
 def traces_ld( f ) :
   fd = open( f, "rb" )
 
