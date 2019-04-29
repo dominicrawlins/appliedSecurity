@@ -6,6 +6,7 @@
 
 import numpy, struct, sys, time
 import matplotlib.pyplot as plt
+from Crypto.Cipher import AES
 
 
 sbox = [0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -121,6 +122,22 @@ def hammingWeightConsumption(plaintextByte, keyHypothesis):
     hypotheticalPowerConsumption = hammingWeightTable[hypInterValue]
     return hypotheticalPowerConsumption
 
+def checkKey(finalKey, M, C):
+    k = bytearray.fromhex(hex(finalKey)[2:])
+    message = 0x0
+    cipher = 0x0
+    for i in range(16):
+        mish = (M[i])
+        message = (message << 8) | int(mish)
+        cipher = (cipher << 8) | int(C[i])
+    m = bytearray.fromhex(hex(message)[2:])
+    c = AES.new( bytes(k) ).encrypt( bytes(m) )
+    calculatedcipher = c.hex()
+    realcipher = hex(cipher)[2:]
+    if(calculatedcipher == realcipher):
+        print("correct")
+    else:
+        print("incorrect")
 
 
 ## Attack implementation, as invoked from main after checking command line
@@ -134,34 +151,46 @@ def attack( argc, argv, attackMethod):
     print("calculating hamming weights")
     calculateHammingWeights()
     print("hamming weights calculated \n\ngetting trace data")
-    numberOfTraces, noOfSamplesInTrace, M, C, T = traces_ld("domtraces.dat")
+    numberOfTraces, noOfSamplesInTrace, M, C, T = traces_ld("dantraces.dat")
     noOfSamplesUsed = 100
     finalKey = 0x0
-    for keyByte in range (1):
-        startingTraceValue = 3000
-        windowSize = 5000
+    startingTraceValue = 3000
+    windowSize = 3000
+    for keyByte in range (16):
+        print("keybyte: ", hex(keyByte))
         correlationTable = numpy.zeros((windowSize, 256))
         plotKeyTries = []
+        maxCorrelation = 0
+        bestKey = -1
+        timeFound = -1
         for keyHypothesis in range(256):
-            print("key hypothesis: " + hex(keyHypothesis))
+            thismaxcorrelation = 0
             hypoConsumptions = []
-            maxCorrelation = 0
             for sampleNumber in range(noOfSamplesUsed):
                 plaintextByte = M[sampleNumber, keyByte]
                 hypotheticalPowerConsumption = hammingWeightConsumption(plaintextByte, keyHypothesis)
                 hypoConsumptions.append(hypotheticalPowerConsumption)
             for timeRecording in range(startingTraceValue, (windowSize+startingTraceValue)):
-                correlation = abs(numpy.corrcoef(T[:noOfSamplesUsed, timeRecording]))
+                correlation = abs(numpy.corrcoef(T[:noOfSamplesUsed, timeRecording], hypoConsumptions)[1,0])
                 if (correlation > maxCorrelation):
                     maxCorrelation = correlation
-                correlationTable[timeRecording, keyHypothesis] = correlation
-            plotKeyTries.append(maxCorrelation)
+                    bestKey = keyHypothesis
+                    timeFound = timeRecording
+                if(correlation > thismaxcorrelation):
+                    thismaxcorrelation = correlation
+                correlationTable[timeRecording-startingTraceValue, keyHypothesis] = correlation
+            plotKeyTries.append(thismaxcorrelation)
+        startingTraceValue = timeFound
+        windowSize = 200
+        finalKey = bestKey |  (finalKey << 8)
+        print("final key:", hex(finalKey))
+        print("best key", hex(bestKey))
+        print("time found: ", timeFound)
+    print(hex(finalKey))
+
+    checkKey(finalKey, M[0,:], C[0,:])
 
 
-    xaxis = numpy.linspace(0, 256, 256)
-    plt.plot(xaxis, plotKeyTries, )
-
-    plt.savefig('correlations.png')
 
 if ( __name__ == '__main__' ) :
   print("in main")
