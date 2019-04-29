@@ -4,7 +4,8 @@
 # which can be found via http://creativecommons.org (and should be included as
 # LICENSE.txt within the associated archive or repository).
 
-import numpy, struct, sys
+import numpy, struct, sys, time
+import matplotlib.pyplot as plt
 
 
 sbox = [0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -23,6 +24,9 @@ sbox = [0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 
 0x70, 0x3E, 0xB5, 0x66, 0x48, 0x03, 0xF6, 0x0E, 0x61, 0x35, 0x57, 0xB9, 0x86, 0xC1, 0x1D, 0x9E,
 0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF,
 0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16]
+
+hammingWeightTable = []
+
 
 ## Load  a trace data set from an on-disk file.
 ##
@@ -95,17 +99,27 @@ def traces_st( f, t, s, M, C, T ) :
 
   fd.close()
 
+def calculateHammingWeights():
+    for byte in range(256):
+        hammingWeight = 0
+        while byte:
+            hammingWeight += (byte & 1)
+            byte = byte >> 1
+        hammingWeightTable.append(hammingWeight)
 
-def lsbAttack(plaintextByte, keyHypothesis):
+
+def lsbHypotheticalConsumption(plaintextByte, keyHypothesis):
     xorValue = plaintextByte ^ keyHypothesis
     hypInterValue = sbox[xorValue]
-    print(hex(hypInterValue))
     hypotheticalPowerConsumption = hypInterValue & 0x01
     return hypotheticalPowerConsumption
 
 
-def hammingWeightAttack(plaintextByte, keyHypothesis):
-    return
+def hammingWeightConsumption(plaintextByte, keyHypothesis):
+    xorValue = plaintextByte ^ keyHypothesis
+    hypInterValue = sbox[xorValue]
+    hypotheticalPowerConsumption = hammingWeightTable[hypInterValue]
+    return hypotheticalPowerConsumption
 
 
 
@@ -117,13 +131,37 @@ def hammingWeightAttack(plaintextByte, keyHypothesis):
 
 def attack( argc, argv, attackMethod):
     print("attacking")
-    numberOfTraces, noOfSamplesInTrace, M, C, T = traces_ld("traces.dat")
+    print("calculating hamming weights")
+    calculateHammingWeights()
+    print("hamming weights calculated \n\ngetting trace data")
+    numberOfTraces, noOfSamplesInTrace, M, C, T = traces_ld("domtraces.dat")
+    noOfSamplesUsed = 100
+    finalKey = 0x0
+    for keyByte in range (1):
+        startingTraceValue = 3000
+        windowSize = 5000
+        correlationTable = numpy.zeros((windowSize, 256))
+        plotKeyTries = []
+        for keyHypothesis in range(256):
+            print("key hypothesis: " + hex(keyHypothesis))
+            hypoConsumptions = []
+            maxCorrelation = 0
+            for sampleNumber in range(noOfSamplesUsed):
+                plaintextByte = M[sampleNumber, keyByte]
+                hypotheticalPowerConsumption = hammingWeightConsumption(plaintextByte, keyHypothesis)
+                hypoConsumptions.append(hypotheticalPowerConsumption)
+            for timeRecording in range(startingTraceValue, (windowSize+startingTraceValue)):
+                correlation = abs(numpy.corrcoef(T[:noOfSamplesUsed, timeRecording]))
+                if (correlation > maxCorrelation):
+                    maxCorrelation = correlation
+                correlationTable[timeRecording, keyHypothesis] = correlation
+            plotKeyTries.append(maxCorrelation)
 
-    for keyHypothesis in range(256):
-        for traceNumber in range(numberOfTraces):
-            plaintextByte = M[traceNumber, 0]
-            hypotheticalPowerConsumption = lsbAttack(plaintextByte, keyHypothesis)
 
+    xaxis = numpy.linspace(0, 256, 256)
+    plt.plot(xaxis, plotKeyTries, )
+
+    plt.savefig('correlations.png')
 
 if ( __name__ == '__main__' ) :
   print("in main")
