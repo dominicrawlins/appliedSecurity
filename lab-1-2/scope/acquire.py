@@ -1,7 +1,7 @@
 # Copyright (C) 2018 Daniel Page <csdsp@bristol.ac.uk>
 #
-# Use of this source code is restricted per the CC BY-NC-ND license, a copy of 
-# which can be found via http://creativecommons.org (and should be included as 
+# Use of this source code is restricted per the CC BY-NC-ND license, a copy of
+# which can be found via http://creativecommons.org (and should be included as
 # LICENSE.txt within the associated archive or repository).
 
 import picoscope.ps2000a as ps2000a, sys, time
@@ -20,7 +20,7 @@ def scope_volts2adc( range, x ) :
 if ( __name__ == '__main__' ) :
   # Phase 1 follows Section 2.7.1.1 of the 2206B programming guide, producing
   # a 1-shot block mode acquisition process: it configures the 2206B to
-  # 
+  #
   # - wait for a trigger signal (a positive edge exceeding 2 V) on channel A,
   # - sample from both channel A and B, using appropriate voltage ranges and
   #   for an appropriate amount of time (i.e., ~2 ms),
@@ -33,7 +33,7 @@ if ( __name__ == '__main__' ) :
 
     # Section 3.28, Page 56
     scope_adc_min = scope.getMinValue()
-    # Section 3.30, Page 58  
+    # Section 3.30, Page 58
     scope_adc_max = scope.getMaxValue()
 
     # Section 3.39, Page 69; Step  2: configure channels
@@ -44,16 +44,16 @@ if ( __name__ == '__main__' ) :
 
     # Section 3.13, Page 36; Step  3: configure timebase
     ( _, samples, samples_max ) = scope.setSamplingInterval( 4.0E-9, 2.0E-3 )
-  
+
     # Section 3.56, Page 93; Step  4: configure trigger
-    scope.setSimpleTrigger( 'A', threshold_V = 2.0E-0, direction = 'Rising', timeout_ms = 0 ) 
-  
+    scope.setSimpleTrigger( 'A', threshold_V = 2.0E-0, direction = 'Rising', timeout_ms = 0 )
+
     # Section 3.37, Page 65; Step  5: start acquisition
     scope.runBlock()
 
-    # Section 3.26, Page 54; Step  6: wait for acquisition to complete  
+    # Section 3.26, Page 54; Step  6: wait for acquisition to complete
     while ( not scope.isReady() ) : time.sleep( 1 )
-  
+
     # Section 3.40, Page 71; Step  7: configure buffers
     # Section 3.18, Page 43; Step  8; transfer  buffers
     ( A, _, _ ) = scope.getDataRaw( channel = 'A', numSamples = samples, downSampleMode = PS2000A_RATIO_MODE_NONE )
@@ -70,7 +70,7 @@ if ( __name__ == '__main__' ) :
 
   # Phase 2 simply stores the acquired data (both channels A *and* B) into a
   # CSV-formated file named on the command line.
-  
+
   try :
     fd = open( sys.argv[ 1 ], 'w' )
 

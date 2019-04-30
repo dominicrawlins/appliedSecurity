@@ -123,21 +123,24 @@ def hammingWeightConsumption(plaintextByte, keyHypothesis):
     return hypotheticalPowerConsumption
 
 def checkKey(finalKey, M, C):
-    k = bytearray.fromhex(hex(finalKey)[2:])
-    message = 0x0
-    cipher = 0x0
-    for i in range(16):
-        mish = (M[i])
-        message = (message << 8) | int(mish)
-        cipher = (cipher << 8) | int(C[i])
-    m = bytearray.fromhex(hex(message)[2:])
-    c = AES.new( bytes(k) ).encrypt( bytes(m) )
-    calculatedcipher = c.hex()
-    realcipher = hex(cipher)[2:]
-    if(calculatedcipher == realcipher):
+    k = struct.pack( 16 * 'B', *finalKey )
+    m = struct.pack( 16 * 'B', *M )
+    c = struct.pack( 16 * 'B', *C )
+    t = AES.new( k ).encrypt( m )
+    if(t == c):
         print("correct")
     else:
         print("incorrect")
+
+
+def acquireTraces():
+    numberOfTraces = 0
+    noOfSamplesInTrace = 0
+    M = 0
+    C = 0
+    T = 0
+    return numberOfTraces, noOfSamplesInTrace, M, C, T
+
 
 
 ## Attack implementation, as invoked from main after checking command line
@@ -146,14 +149,24 @@ def checkKey(finalKey, M, C):
 ## \param[in] argc number of command line arguments
 ## \param[in] argv           command line arguments
 
-def attack( argc, argv, attackMethod):
+def attack( argc, argv):
     print("attacking")
     print("calculating hamming weights")
     calculateHammingWeights()
-    print("hamming weights calculated \n\ngetting trace data")
-    numberOfTraces, noOfSamplesInTrace, M, C, T = traces_ld("dantraces.dat")
+    numberOfTraces = -1
+    noOfSamplesInTrace = -1
+    M = []
+    C = []
+    T = []
+    if(argc == 2):
+        print("getting trace data")
+        numberOfTraces, noOfSamplesInTrace, M, C, T = traces_ld(argv[1])
+        print("got trace data")
+    else:
+        numberOfTraces, noOfSamplesInTrace, M, C, T = acquireTraces()
+
     noOfSamplesUsed = 100
-    finalKey = 0x0
+    finalKey = []
     startingTraceValue = 3000
     windowSize = 3000
     for keyByte in range (16):
@@ -182,17 +195,15 @@ def attack( argc, argv, attackMethod):
             plotKeyTries.append(thismaxcorrelation)
         startingTraceValue = timeFound
         windowSize = 200
-        finalKey = bestKey |  (finalKey << 8)
-        print("final key:", hex(finalKey))
-        print("best key", hex(bestKey))
-        print("time found: ", timeFound)
-    print(hex(finalKey))
+        finalKey.append(bestKey)
+        #print("final key:", hex(finalKey))
+        #print("best key", hex(bestKey))
+        #print("time found: ", timeFound)
+    print(finalKey)
 
     checkKey(finalKey, M[0,:], C[0,:])
 
 
 
 if ( __name__ == '__main__' ) :
-  print("in main")
-  #attackMethod: 0 for LSB, 1 for Hamming Weight
-  attack( len( sys.argv ), sys.argv, 0)
+  attack( len( sys.argv ), sys.argv)
