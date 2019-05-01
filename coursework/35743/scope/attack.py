@@ -4,8 +4,9 @@
 # which can be found via http://creativecommons.org (and should be included as
 # LICENSE.txt within the associated archive or repository).
 
-import numpy, struct, sys, time
+import numpy, struct, sys, binascii, time, random, serial, argparse
 import matplotlib.pyplot as plt
+import picoscope.ps2000a as ps2000a
 from Crypto.Cipher import AES
 
 
@@ -27,6 +28,11 @@ sbox = [0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 
 0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16]
 
 hammingWeightTable = []
+
+PS2000A_RATIO_MODE_NONE      = 0
+PS2000A_RATIO_MODE_AGGREGATE = 1
+PS2000A_RATIO_MODE_DECIMATE  = 2
+PS2000A_RATIO_MODE_AVERAGE   = 4
 
 
 ## Load  a trace data set from an on-disk file.
@@ -100,6 +106,39 @@ def traces_st( f, t, s, M, C, T ) :
 
   fd.close()
 
+
+def octetstr2str( x ) :
+  t = x.split( ':' ) ; n = int( t[ 0 ], 16 ) ; x = binascii.a2b_hex( t[ 1 ] )
+
+  if( n != len( x ) ) :
+    raise ValueError
+  else :
+    return x
+
+def str2octetstr( x ) :
+  return ( '%02X' % ( len( x ) ) ) + ':' + ( binascii.b2a_hex( x ) )
+
+def scope_adc2volts( range, x , scope_adc_max) :
+  return ( float( x ) / float( scope_adc_max ) ) * range;
+
+
+def board_rdln( fd    ) :
+  r = ''
+
+  while( True ):
+    t = fd.read( 1 )
+
+    if( t == '\x0D' ) :
+      break
+    else:
+      r += t
+
+  return r
+
+def board_wrln( fd, x ) :
+  fd.write( x + '\x0D' ) ; fd.flush()
+
+
 def calculateHammingWeights():
     for byte in range(256):
         hammingWeight = 0
@@ -134,12 +173,90 @@ def checkKey(finalKey, M, C):
 
 
 def acquireTraces():
-    numberOfTraces = 0
-    noOfSamplesInTrace = 0
-    M = 0
-    C = 0
-    T = 0
-    return numberOfTraces, noOfSamplesInTrace, M, C, T
+    numberOfTraces = 100
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument( '--mode', dest = 'mode',             action = 'store', choices = [ 'uart', 'socket' ], default = 'uart'             )
+
+    parser.add_argument( '--uart', dest = 'uart', type = str, action = 'store',                                 default = '/dev/scale-board' )
+    parser.add_argument( '--host', dest = 'host', type = str, action = 'store' )
+    parser.add_argument( '--port', dest = 'port', type = int, action = 'store' )
+
+    parser.add_argument( '--data', dest = 'data', type = str, action = 'store' )
+
+    args = parser.parse_args()
+
+
+    fd = serial.Serial( port = args.uart, baudrate = 9600, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE, timeout = None )
+
+    scope = ps2000a.PS2000a()
+    scope_adc_min = scope.getMinValue()
+    scope_adc_max = scope.getMaxValue()
+
+    scope.setChannel( channel = 'A', enabled = True, coupling = 'DC', VRange =   5.0E-0 )
+    scope_range_chan_a =   5.0e-0
+    scope.setChannel( channel = 'B', enabled = True, coupling = 'DC', VRange = 500.0E-3 )
+    scope_range_chan_b = 500.0e-3
+
+    ( _, samples, samples_max ) = scope.setSamplingInterval( 4.0E-9, 0.2E-3 )
+
+    scope.setSimpleTrigger( 'A', threshold_V = 2.0E-0, direction = 'Rising', timeout_ms = 0 )
+
+    M = numpy.zeros( ( numberOfTraces, 16 ), dtype = numpy.uint8 )
+    C = numpy.zeros( ( numberOfTraces, 16 ), dtype = numpy.uint8 )
+    T = numpy.zeros( ( numberOfTraces,  samples ), dtype = numpy.int16 )
+
+    time.sleep( 1 )
+
+    print("starting to get traces")
+    for traceNumber in range(numberOfTraces):
+        print("tracenumber: "+ str(traceNumber))
+        message = ""
+        for keyByteIndex in range(16):
+            keyByte = random.randint(0,255)
+            M[traceNumber, keyByteIndex] = keyByte
+            byteString = str(hex(keyByte)[2:])
+            if(len(byteString) == 1):
+                byteString = "0" + byteString
+            message = message + byteString
+        scope.runBlock()
+        uartMessage = "10:" + message
+        print("writing message")
+        print(uartMessage)
+        board_wrln(fd, "01:01")
+        board_wrln(fd, uartMessage)
+        board_wrln(fd, "00:")
+        print("reading message")
+        cipher = board_rdln(fd)
+        cipherString = str(cipher[3:])
+
+        print("getting trace data")
+        while ( not scope.isReady() ) : time.sleep( 1 )
+        ( A, _, _ ) = scope.getDataRaw( channel = 'A', numSamples = samples, downSampleMode = PS2000A_RATIO_MODE_NONE )
+        ( B, _, _ ) = scope.getDataRaw( channel = 'B', numSamples = samples, downSampleMode = PS2000A_RATIO_MODE_NONE )
+        scope.stop()
+
+        if(len(cipherString) != 32):
+            print("error: cipher string not correct length")
+        for i in range(16):
+            C[traceNumber, i] = int(cipherString[i*2:(2*i)+2], 16)
+
+        plotB = []
+        for i in range(samples):
+            if(traceNumber == 1):
+                plotB.append(B[i])
+            T[traceNumber, i] = B[i]
+
+        if(traceNumber == 1):
+            xaxis = numpy.linspace(0, samples, samples)
+            plt.plot(xaxis, plotB, )
+            plt.savefig('B.png')
+
+    traces_st("saved.dat", numberOfTraces, samples, M, C, T)
+    fd.close()
+    scope.close()
+    return numberOfTraces, samples, M, C, T
 
 
 
@@ -163,12 +280,18 @@ def attack( argc, argv):
         numberOfTraces, noOfSamplesInTrace, M, C, T = traces_ld(argv[1])
         print("got trace data")
     else:
+        print("getting own trace data")
         numberOfTraces, noOfSamplesInTrace, M, C, T = acquireTraces()
 
+    print(M.shape)
+    print(C.shape)
+    print(T.shape)
+    print(numberOfTraces)
+    print(noOfSamplesInTrace)
     noOfSamplesUsed = 100
     finalKey = []
-    startingTraceValue = 3000
-    windowSize = 3000
+    startingTraceValue = 0
+    windowSize = 8000
     for keyByte in range (16):
         print("keybyte: ", hex(keyByte))
         correlationTable = numpy.zeros((windowSize, 256))
@@ -176,6 +299,7 @@ def attack( argc, argv):
         maxCorrelation = 0
         bestKey = -1
         timeFound = -1
+        plotcorrelations = []
         for keyHypothesis in range(256):
             thismaxcorrelation = 0
             hypoConsumptions = []
@@ -192,13 +316,19 @@ def attack( argc, argv):
                 if(correlation > thismaxcorrelation):
                     thismaxcorrelation = correlation
                 correlationTable[timeRecording-startingTraceValue, keyHypothesis] = correlation
+            if(keyByte == 0):
+                plotcorrelations.append(thismaxcorrelation)
             plotKeyTries.append(thismaxcorrelation)
         startingTraceValue = timeFound
-        windowSize = 200
+        windowSize = 300
         finalKey.append(bestKey)
         #print("final key:", hex(finalKey))
         #print("best key", hex(bestKey))
         #print("time found: ", timeFound)
+    xaxis = numpy.linspace(0, 256, 256)
+    plt.plot(xaxis, plotcorrelations, )
+
+    plt.savefig('correlationsS.png')
     print(finalKey)
 
     checkKey(finalKey, M[0,:], C[0,:])
