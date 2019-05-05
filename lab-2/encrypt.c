@@ -21,7 +21,7 @@ aes_gf28_t aes_gf28_mul ( aes_gf28_t a, aes_gf28_t b );
 void aes_init(uint8_t* k, uint8_t* r );
 void aes_enc( uint8_t* c, uint8_t* m, uint8_t* k );
 void aes_enc_key_update(aes_gf28_t* k, aes_gf28_t rc);
-void aes_enc_add_rnd_key( aes_gf28_t* s, aes_gf28_t* rk );
+void aes_enc_add_rnd_key( aes_gf28_t* s, aes_gf28_t* rk , uint8_t remaskingType);
 void aes_enc_rnd_sub( aes_gf28_t* s );
 void aes_enc_rnd_row( aes_gf28_t* s );
 void aes_enc_rnd_mix( aes_gf28_t* s );
@@ -53,6 +53,10 @@ uint8_t sboxTable[256] = {0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 
   0x70, 0x3E, 0xB5, 0x66, 0x48, 0x03, 0xF6, 0x0E, 0x61, 0x35, 0x57, 0xB9, 0x86, 0xC1, 0x1D, 0x9E,
   0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF,
   0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16};
+
+uint8_t mask[10];
+
+uint8_t sboxMasked[256];
 
   //run with argument 1 to test
   int main( int argc, char* argv[] ) {
@@ -108,36 +112,70 @@ printf("%x\n", an);
 
 }
 
+void calculateMixColMask(){
+  aes_gf28_t xorarray[4] = {0x02, 0x03, 0x01, 0x01};
+  for(int maskNumber = 0; maskNumber < 4; maskNumber++){
+    aes_gf28_t newvalue = 0x00;
+    for(int loopno = 0; loopno < 4; loopno++){
+      aes_gf28_t a = xorarray[(4-maskNumber + loopno)%4];
+      aes_gf28_t b = mask[loopno+1];
+      newvalue ^= aes_gf28_mul(a,b);
+    }
+    mask[6 + maskNumber] = newvalue;
+  }
+}
+
+void calculateSboxMasked(){
+  for(int i = 0; i < 256; i++){
+    sboxMasked[i ^ mask[0]] = sboxTable[i] ^ mask[5];
+  }
+}
+
+void remask(uint8_t* c, uint8_t mask1, uint8_t mask2, uint8_t mask3, uint8_t mask4, uint8_t mask5, uint8_t mask6, uint8_t mask7, uint8_t mask8){
+	for(int i = 0; i< 4; i++){
+		c[(i*4)]	= c[(i*4)] ^ (mask1 ^ mask5);
+		c[(i*4)+1]	= c[(i*4)+1] ^ (mask2 ^ mask6);
+		c[(i*4)+2]	= c[(i*4)+2] ^ (mask3 ^ mask7);
+		c[(i*4)+3]	= c[(i*4)+3] ^ (mask4 ^ mask8);
+	}
+}
+
 void aes_init(uint8_t* k, uint8_t* r ){
-
-
-
+  srand(time(NULL));
+  for(int i = 0; i < 6; i++){
+    mask[i] = (uint8_t) rand() % 256;
+  }
+  calculateMixColMask();
+  calculateSboxMasked();
 }
 
 
 void aes_enc( aes_gf28_t* c, aes_gf28_t* m, aes_gf28_t* k ){
+  aes_init(k, 0);
   aes_gf28_t rc[10] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
   uint8_t roundKeyCounter = 0;
   for(int i = 0; i< matrixsize; i++){
     c[i] = m[i];
   }
-  aes_enc_add_rnd_key(c, k);
+  remask(c, mask[6], mask[7], mask[8], mask[9], 0, 0, 0, 0);
+  aes_enc_add_rnd_key(c, k, 0);
 
 
   for(int i = 0; i < 9; i++){
     aes_enc_rnd_sub(c);
     aes_enc_rnd_row(c);
+    remask(c, mask[1], mask[2], mask[3], mask[4], mask[5], mask[5], mask[5], mask[5]);
     aes_enc_rnd_mix(c);
     uint rconst = rc[roundKeyCounter];
     aes_enc_key_update(k, rconst);
-    aes_enc_add_rnd_key(c, k);
+    aes_enc_add_rnd_key(c, k, 0);
     roundKeyCounter++;
   }
   aes_enc_rnd_sub(c);
   aes_enc_rnd_row(c);
   uint rconst = rc[roundKeyCounter];
   aes_enc_key_update(k, rconst);
-  aes_enc_add_rnd_key(c, k);
+  aes_enc_add_rnd_key(c, k, 1);
 }
 
 
@@ -212,14 +250,25 @@ aes_gf28_t aes_gf28_mul ( aes_gf28_t a, aes_gf28_t b ) {
   return t;
 }
 
-void aes_enc_add_rnd_key( aes_gf28_t* s, aes_gf28_t* rk ){
+void aes_enc_add_rnd_key( aes_gf28_t* s, aes_gf28_t* rk , uint8_t remaskingType){
+  uint8_t remaskKey[16];
+  for(int i = 0; i < 16; i++){
+    remaskKey[i] = rk[i];
+  }
+  if(remaskingType == 0){
+    remask(remaskKey, mask[6], mask[7], mask[8], mask[9], mask[0], mask[0], mask[0], mask[0]);
+  }
+  else if(remaskingType == 1){
+    remask(remaskKey, 0, 0, 0, 0, mask[5], mask[5], mask[5], mask[5]);
+  }
   for(int i = 0; i < matrixsize; i++){
-    s[i] = s[i] ^ rk[i];
+    s[i] = s[i] ^ remaskKey[i];
   }
 }
+
 void aes_enc_rnd_sub( aes_gf28_t* s ){
   for(int i = 0; i < matrixsize; i++){
-    s[i] = sbox(s[i]);
+    s[i] = sboxMasked[(s[i])];
   }
 }
 
@@ -333,7 +382,7 @@ void testaddroundkey(){
   aes_gf28_t key[16] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
   aes_gf28_t after[16] = {  0x19, 0x3d, 0xe3, 0xbe, 0xa0, 0xf4, 0xe2, 0x2b, 0x9a, 0xc6, 0x8d, 0x2a, 0xe9, 0xf8, 0x48, 0x08};
 
-  aes_enc_add_rnd_key(first, key);
+  aes_enc_add_rnd_key(first, key, 0);
 
   int isRight = testmatrices(first, after);
 

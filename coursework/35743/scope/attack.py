@@ -290,10 +290,11 @@ def attack( argc, argv):
     print(noOfSamplesInTrace)
     noOfSamplesUsed = 300
     finalKey = []
-    startingTraceValue = 0
-    windowSize = 25000
+    startingTraceValue = 3000
+    windowSize = 3000
+    timeKeyFinds = []
     for keyByte in range (16):
-        print("keybyte: ", hex(keyByte))
+        print("keybyte: ", keyByte)
         correlationTable = numpy.zeros((windowSize, 256))
         plotKeyTries = []
         maxCorrelation = 0
@@ -319,12 +320,19 @@ def attack( argc, argv):
             if(keyByte == 0):
                 plotcorrelations.append(thismaxcorrelation)
             plotKeyTries.append(thismaxcorrelation)
-        startingTraceValue = timeFound
-        windowSize = 500
+
+
         finalKey.append(bestKey)
-        #print("final key:", hex(finalKey))
-        #print("best key", hex(bestKey))
-        #print("time found: ", timeFound)
+        timeKeyFinds.append(timeFound)
+        print("best key", hex(bestKey))
+        print("time found: ", timeFound)
+        if(keyByte == 0):
+            startingTraceValue = timeFound
+            windowSize = 300
+        else:
+            startingTraceValue = int(((timeFound - timeKeyFinds[keyByte-1])//2)+timeFound)
+            windowSize = timeFound - timeKeyFinds[keyByte-1]
+
     #xaxis = numpy.linspace(0, 256, 256)
     #plt.plot(xaxis, plotcorrelations, )
 
