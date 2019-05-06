@@ -259,6 +259,18 @@ def acquireTraces():
     return numberOfTraces, samples, M, C, T
 
 
+def corr2_coeff(A,B):
+    # Rowwise mean of input arrays & subtract from input arrays themeselves
+    A_mA = A - A.mean(1)[:,None]
+    B_mB = B - B.mean(1)[:,None]
+
+    # Sum of squares across rows
+    ssA = (A_mA**2).sum(1);
+    ssB = (B_mB**2).sum(1);
+
+    # Finally get corr coeff
+    return numpy.dot(A_mA,B_mB.T)/numpy.sqrt(numpy.dot(ssA[:,None],ssB[None]))
+
 
 ## Attack implementation, as invoked from main after checking command line
 ## arguments.
@@ -294,6 +306,9 @@ def attack( argc, argv):
     windowSize = 3000
     timeKeyFinds = []
     for keyByte in range (16):
+
+
+
         print("keybyte: ", keyByte)
         correlationTable = numpy.zeros((windowSize, 256))
         plotKeyTries = []
@@ -301,7 +316,34 @@ def attack( argc, argv):
         bestKey = -1
         timeFound = -1
         plotcorrelations = []
+        hypotheticalConsumptions = numpy.zeros((256, noOfSamplesInTrace))
         for keyHypothesis in range(256):
+            for sampleNumber in range(noOfSamplesUsed):
+                plaintextByte = M[sampleNumber, keyByte]
+                hypotheticalConsumptions[keyHypothesis][sampleNumber] = hammingWeightConsumption(plaintextByte, keyHypothesis)
+        correlations = corr2_coeff(hypotheticalConsumptions, T)
+        argumentPosition = numpy.nanargmax(correlations)
+        xpos = argumentPosition % 300
+        ypos = (argumentPosition-xpos) / 256
+
+        max = 0
+        bigi = 0
+        bigj= 0
+        for i  in range(256):
+            for j in range(300):
+                if(abs(correlations[i][j]) > max):
+                    max = abs(correlations[i][j])
+                    bigi = i
+                    bigj = j
+        print(max, bigi, bigj)
+        print(xpos, ypos)
+        numpy.nanmax(correlations)
+        print(correlations)
+        '''
+        for keyHypothesis in range(256):
+            hypotheticalConsumptions = numpy.zeros(())
+
+
             thismaxcorrelation = 0
             hypoConsumptions = []
             for sampleNumber in range(noOfSamplesUsed):
@@ -309,7 +351,7 @@ def attack( argc, argv):
                 hypotheticalPowerConsumption = hammingWeightConsumption(plaintextByte, keyHypothesis)
                 hypoConsumptions.append(hypotheticalPowerConsumption)
             for timeRecording in range(startingTraceValue, (windowSize+startingTraceValue)):
-                correlation = abs(numpy.corrcoef(T[:noOfSamplesUsed, timeRecording], hypoConsumptions)[1,0])
+                correlation = abs(corr2_coeff(T[:noOfSamplesUsed, timeRecording], hypoConsumptions))
                 if (correlation > maxCorrelation):
                     maxCorrelation = correlation
                     bestKey = keyHypothesis
@@ -320,18 +362,11 @@ def attack( argc, argv):
             if(keyByte == 0):
                 plotcorrelations.append(thismaxcorrelation)
             plotKeyTries.append(thismaxcorrelation)
-
-
-        finalKey.append(bestKey)
-        timeKeyFinds.append(timeFound)
-        print("best key", hex(bestKey))
-        print("time found: ", timeFound)
-        if(keyByte == 0):
-            startingTraceValue = timeFound
-            windowSize = 300
-        else:
-            startingTraceValue = int(((timeFound - timeKeyFinds[keyByte-1])//2)+timeFound)
-            windowSize = timeFound - timeKeyFinds[keyByte-1]
+        '''
+        finalKey.append(bigi)
+        #timeKeyFinds.append(timeFound)
+        print("best key", hex(bigi))
+        #print("time found: ", timeFound)
 
     #xaxis = numpy.linspace(0, 256, 256)
     #plt.plot(xaxis, plotcorrelations, )
