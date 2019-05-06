@@ -31,7 +31,14 @@
     0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF,
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16};
 
-  
+
+    uint8_t masks[4];
+    uint8_t masksPrime[4];
+    uint8_t bigM;
+    uint8_t bigMPrime;
+
+    uint8_t sboxMasked[256];
+
 
   uint8_t charToHex(char in){
     if(in > 64 && in < 71){
@@ -121,6 +128,36 @@ uint8_t aes_gf28_mul ( uint8_t a, uint8_t b ) {
   return t;
 }
 
+void calculateMixColMask(){
+  uint8_t xorarray[4] = {0x02, 0x03, 0x01, 0x01};
+  for(int maskNumber = 0; maskNumber < 4; maskNumber++){
+    uint8_t newvalue = 0x00;
+    for(int loopno = 0; loopno < 4; loopno++){
+      uint8_t a = xorarray[(4-maskNumber + loopno)%4];
+      uint8_t b = masks[loopno];
+      newvalue ^= aes_gf28_mul(a,b);
+    }
+    masksPrime[maskNumber] = newvalue;
+  }
+}
+
+void calculateSboxMasked(){
+  for(int i = 0; i < 256; i++){
+    sboxMasked[i ^ bigM] = sboxTable[i] ^ bigMPrime;
+  }
+}
+
+void mask(uint8_t* c, uint8_t mask1, uint8_t mask2, uint8_t mask3, uint8_t mask4, uint8_t mask5, uint8_t mask6, uint8_t mask7, uint8_t mask8){
+	for(int i = 0; i< 4; i++){
+		c[(i*4)]	= c[(i*4)] ^ (mask1 ^ mask5);
+		c[(i*4)+1]	= c[(i*4)+1] ^ (mask2 ^ mask6);
+		c[(i*4)+2]	= c[(i*4)+2] ^ (mask3 ^ mask7);
+		c[(i*4)+3]	= c[(i*4)+3] ^ (mask4 ^ mask8);
+	}
+}
+
+
+
 /** Initialise an AES-128 encryption, e.g., expand the cipher key k into round
   * keys, or perform randomised pre-computation in support of a countermeasure;
   * this can be left blank if no such initialisation is required, because the
@@ -172,18 +209,26 @@ uint8_t aes_gf28_mul ( uint8_t a, uint8_t b ) {
 
   void aes_enc_rnd_sub( uint8_t* s ){
     for(int i = 0; i < 16; i++){
-      s[i] = sbox(s[i]);
+      s[i] = sboxMasked[(s[i])];
     }
   }
 
 
-  void aes_enc_add_rnd_key( uint8_t* s, uint8_t* rk ){
+  void aes_enc_add_rnd_key( uint8_t* s, uint8_t* rk , uint8_t remaskingType){
+    uint8_t remaskKey[16];
     for(int i = 0; i < 16; i++){
-      s[i] = s[i] ^ rk[i];
+      remaskKey[i] = rk[i];
+    }
+    if(remaskingType == 0){
+      mask(remaskKey, masksPrime[0], masksPrime[1], masksPrime[2], masksPrime[3], bigM, bigM, bigM, bigM);
+    }
+    else if(remaskingType == 1){
+      mask(remaskKey, 0, 0, 0, 0, bigMPrime, bigMPrime, bigMPrime, bigMPrime);
+    }
+    for(int i = 0; i < 16; i++){
+      s[i] = s[i] ^ remaskKey[i];
     }
   }
-
-
 
 
   void aes_enc_key_update(uint8_t* k, uint8_t rc){
@@ -204,6 +249,13 @@ uint8_t aes_gf28_mul ( uint8_t a, uint8_t b ) {
 
 
 void aes_init(                                uint8_t* k, const uint8_t* r ) {
+  for(int i = 0; i < 4; i++){
+    masks[i] = r[i];
+  }
+  bigM = r[4];
+  bigMPrime = r[5];
+  calculateMixColMask();
+  calculateSboxMasked();
   return;
 }
 
@@ -217,28 +269,31 @@ void aes_init(                                uint8_t* k, const uint8_t* r ) {
   */
 
 void aes     ( uint8_t* c, const uint8_t* m,  uint8_t* k, const uint8_t* r ) {
+  aes_init(k, 0);
   uint8_t rc[10] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
   uint8_t roundKeyCounter = 0;
   for(int i = 0; i< 16; i++){
     c[i] = m[i];
   }
-  aes_enc_add_rnd_key(c, k);
+  mask(c, masksPrime[0], masksPrime[1], masksPrime[2], masksPrime[3], 0, 0, 0, 0);
+  aes_enc_add_rnd_key(c, k, 0);
 
 
   for(int i = 0; i < 9; i++){
     aes_enc_rnd_sub(c);
     aes_enc_rnd_row(c);
+    mask(c, masks[0], masks[1], masks[2], masks[3], bigMPrime, bigMPrime, bigMPrime, bigMPrime);
     aes_enc_rnd_mix(c);
     uint8_t rconst = rc[roundKeyCounter];
     aes_enc_key_update(k, rconst);
-    aes_enc_add_rnd_key(c, k);
+    aes_enc_add_rnd_key(c, k, 0);
     roundKeyCounter++;
   }
   aes_enc_rnd_sub(c);
   aes_enc_rnd_row(c);
   uint8_t rconst = rc[roundKeyCounter];
   aes_enc_key_update(k, rconst);
-  aes_enc_add_rnd_key(c, k);
+  aes_enc_add_rnd_key(c, k, 1);
   return;
 }
 
@@ -277,7 +332,7 @@ int main( int argc, char* argv[] ) {
     return -1;
   }
 
-  uint8_t cmd[ 1 ], c[ SIZEOF_BLK ], m[ SIZEOF_BLK ] = {0x32, 0x43, 0xF6, 0xA8, 0x88, 0x5A, 0x30, 0x8D, 0x31, 0x31, 0x98, 0xA2, 0xE0, 0x37, 0x07, 0x34}, k[ SIZEOF_KEY ] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C }, r[ SIZEOF_RND ];
+  uint8_t cmd[ 1 ], c[ SIZEOF_BLK ], m[ SIZEOF_BLK ] = {0x32, 0x43, 0xF6, 0xA8, 0x88, 0x5A, 0x30, 0x8D, 0x31, 0x31, 0x98, 0xA2, 0xE0, 0x37, 0x07, 0x34}, k[ SIZEOF_KEY ] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C }, r[ SIZEOF_RND ] = {0x01,0x02,0x03,0x04,0x05,0x06};
 
   while( true ) {
     if( 1 != octetstr_rd( cmd, 1 ) ) {
