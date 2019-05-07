@@ -226,7 +226,7 @@ def acquireTraces():
         print(uartMessage)
         board_wrln(fd, "01:01")
         board_wrln(fd, uartMessage)
-        board_wrln(fd, "00:")
+        board_wrln(fd, "06:000102030405")
         print("reading message")
         cipher = board_rdln(fd)
         cipherString = str(cipher[3:])
