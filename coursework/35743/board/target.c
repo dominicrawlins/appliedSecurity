@@ -80,8 +80,9 @@ int  octetstr_rd(       uint8_t* r, int n_r ) {
     r[i] = (charToHex(firstCharacter) * 0x10) + charToHex(secondCharacter);
   }
   scale_uart_rd(SCALE_UART_MODE_BLOCKING); //CR
-//  scale_uart_rd(SCALE_UART_MODE_BLOCKING); //LF
-  //scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0D');//CR  for board & emulator
+  //scale_uart_rd(SCALE_UART_MODE_BLOCKING); //LF
+  scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0D');//CR  for board & emulator
+  scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0A');//LF  for emulator
   return size;
 }
 
@@ -101,6 +102,7 @@ void octetstr_wr( const uint8_t* x, int n_x ) {
     scale_uart_wr(SCALE_UART_MODE_BLOCKING, hexToChar(x[i] % 0x10));
   }
   scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0D');//CR  for board & emulator
+  scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0A');//LF  for emulator
 }
 
 uint8_t xtime( uint8_t a ){
@@ -145,12 +147,12 @@ void calculateSboxMasked(){
   }
 }
 
-void mask(uint8_t* c, uint8_t mask1, uint8_t mask2, uint8_t mask3, uint8_t mask4, uint8_t mask5, uint8_t mask6, uint8_t mask7, uint8_t mask8){
+void mask(uint8_t* c, uint8_t maskone, uint8_t masktwo, uint8_t maskthree, uint8_t maskfour, uint8_t maskfive, uint8_t masksix, uint8_t maskseven, uint8_t maskeight){
 	for(int i = 0; i< 4; i++){
-		c[(i*4)]	= c[(i*4)] ^ (mask1 ^ mask5);
-		c[(i*4)+1]	= c[(i*4)+1] ^ (mask2 ^ mask6);
-		c[(i*4)+2]	= c[(i*4)+2] ^ (mask3 ^ mask7);
-		c[(i*4)+3]	= c[(i*4)+3] ^ (mask4 ^ mask8);
+		c[(i*4)]	= c[(i*4)] ^ (maskone ^ maskfive);
+		c[(i*4)+1]	= c[(i*4)+1] ^ (masktwo ^ masksix);
+		c[(i*4)+2]	= c[(i*4)+2] ^ (maskthree ^ maskseven);
+		c[(i*4)+3]	= c[(i*4)+3] ^ (maskfour ^ maskeight);
 	}
 }
 
@@ -221,7 +223,7 @@ void mask(uint8_t* c, uint8_t mask1, uint8_t mask2, uint8_t mask3, uint8_t mask4
       mask(remaskKey, masksPrime[0], masksPrime[1], masksPrime[2], masksPrime[3], bigM, bigM, bigM, bigM);
     }
     else if(remaskingType == 1){
-      mask(remaskKey, 0, 0, 0, 0, bigMPrime, bigMPrime, bigMPrime, bigMPrime);
+      mask(remaskKey, bigMPrime, bigMPrime, bigMPrime, bigMPrime, 0, 0, 0, 0);
     }
     for(int i = 0; i < 16; i++){
       s[i] = s[i] ^ remaskKey[i];

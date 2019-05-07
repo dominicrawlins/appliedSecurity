@@ -8,6 +8,7 @@ import numpy, struct, sys, binascii, time, random, serial, argparse
 import matplotlib.pyplot as plt
 import picoscope.ps2000a as ps2000a
 from Crypto.Cipher import AES
+numpy.seterr(divide='ignore', invalid='ignore')
 
 
 sbox = [0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -209,10 +210,12 @@ def acquireTraces():
 
     time.sleep( 1 )
 
-    print("starting to get traces")
+    print("Traces acquiring: " + traceNumber)
     for traceNumber in range(numberOfTraces):
         print("tracenumber: "+ str(traceNumber))
         message = ""
+
+        #create message to encrypt
         for keyByteIndex in range(16):
             keyByte = random.randint(0,255)
             M[traceNumber, keyByteIndex] = keyByte
@@ -220,18 +223,18 @@ def acquireTraces():
             if(len(byteString) == 1):
                 byteString = "0" + byteString
             message = message + byteString
+        #start oscilloscope
         scope.runBlock()
+        #write message and read back the cipher
         uartMessage = "10:" + message
-        print("writing message")
         print(uartMessage)
         board_wrln(fd, "01:01")
         board_wrln(fd, uartMessage)
         board_wrln(fd, "06:000102030405")
-        print("reading message")
         cipher = board_rdln(fd)
         cipherString = str(cipher[3:])
 
-        print("getting trace data")
+        #get traces
         while ( not scope.isReady() ) : time.sleep( 1 )
         ( A, _, _ ) = scope.getDataRaw( channel = 'A', numSamples = samples, downSampleMode = PS2000A_RATIO_MODE_NONE )
         ( B, _, _ ) = scope.getDataRaw( channel = 'B', numSamples = samples, downSampleMode = PS2000A_RATIO_MODE_NONE )
@@ -241,24 +244,19 @@ def acquireTraces():
             print("error: cipher string not correct length")
         for i in range(16):
             C[traceNumber, i] = int(cipherString[i*2:(2*i)+2], 16)
-
-        plotB = []
+        #put traces into T
         for i in range(samples):
-            if(traceNumber == 1):
-                plotB.append(B[i])
             T[traceNumber, i] = B[i]
 
-        if(traceNumber == 1):
-            xaxis = numpy.linspace(0, samples, samples)
-            plt.plot(xaxis, plotB, )
-            plt.savefig('B.png')
 
+    #save traces to file
     traces_st("saved.dat", numberOfTraces, samples, M, C, T)
     fd.close()
     scope.close()
     return numberOfTraces, samples, M, C, T
 
 
+# source: https://stackoverflow.com/questions/30143417/computing-the-correlation-coefficient-between-two-multi-dimensional-arrays
 def corr2_coeff(A,B):
     # Rowwise mean of input arrays & subtract from input arrays themeselves
     A_mA = A - A.mean(1)[:,None]
@@ -279,52 +277,35 @@ def corr2_coeff(A,B):
 ## \param[in] argv           command line arguments
 
 def attack( argc, argv):
-    print("attacking")
-    print("calculating hamming weights")
+    print("Starting attack")
     calculateHammingWeights()
-    numberOfTraces = -1
-    noOfSamplesInTrace = -1
-    M = []
-    C = []
-    T = []
+    #if file specified in command line, get traces from file
     if(argc == 2):
-        print("getting trace data")
+        print("Getting trace data from file")
         numberOfTraces, noOfSamplesInTrace, M, C, T = traces_ld(argv[1])
-        print("got trace data")
+        print("Trace data loaded")
+    #if not use acquire function to get own traces
     else:
-        print("getting own trace data")
+        print("Acquiring own traces")
         numberOfTraces, noOfSamplesInTrace, M, C, T = acquireTraces()
 
-    print(M.shape)
-    print(C.shape)
-    print(T.shape)
-    print(numberOfTraces)
-    print(noOfSamplesInTrace)
     noOfSamplesUsed = numberOfTraces
     finalKey = []
     for keyByte in range (16):
-        print("keybyte: ", keyByte)
-        maxCorrelation = 0
-        bestKey = -1
-        timeFound = -1
-        plotcorrelations = []
+        print("Keybyte index: ", keyByte)
         hypotheticalConsumptions = numpy.zeros((256, noOfSamplesUsed))
         for keyHypothesis in range(256):
             for sampleNumber in range(noOfSamplesUsed):
                 plaintextByte = M[sampleNumber, keyByte]
                 hypotheticalConsumptions[keyHypothesis][sampleNumber] = hammingWeightConsumption(plaintextByte, keyHypothesis)
-        correlations = numpy.abs(corr2_coeff(hypotheticalConsumptions, T.T))
-        print("testtttt")
-        print(hypotheticalConsumptions.shape)
-        print(T.shape)
-        print(correlations.shape)
+        correlations = numpy.abs(corr2_coeff(hypotheticalConsumptions, T[:noOfSamplesUsed, :].T))
 
         keyFound = numpy.nanargmax(numpy.nanmax(correlations, axis = 1))
-        print(keyFound)
         finalKey.append(keyFound)
-        print("key byte:", hex(keyFound))
+        print("Key byte: ", hex(keyFound), "\n")
 
-    print((finalKey))
+    print("Final Key:")
+    print(finalKey)
 
     checkKey(finalKey, M[0,:], C[0,:])
 
