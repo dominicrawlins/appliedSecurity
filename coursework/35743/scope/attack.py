@@ -185,9 +185,11 @@ def checkKey(finalKey, M, C):
     c = struct.pack( 16 * 'B', *C )
     t = AES.new( k ).encrypt( m )
     if(t == c):
-        print("correct")
+        print("Correct")
+        return True
     else:
-        print("incorrect")
+        print("Incorrect")
+        return False
 
 
 def acquireTraces():
@@ -340,14 +342,24 @@ def attack( argc, argv):
         finalKey.append(keyFound)
         print "Key byte: ", hex(keyFound)[:-1], "\n"
 
-    print("Final Key:")
-    print(finalKey)
-
     z= 3.719
-    checkKey(finalKey, M[0,:], C[0,:])
-    minTracesNeeded = 3 + 8*((z**2)/(math.log((1+minimumMaxCorrelation)/ (1 - minimumMaxCorrelation)) **2))
+    isKeyRight = checkKey(finalKey, M[0,:], C[0,:])
     print "Amount of traces used: " , noOfSamplesUsed
-    print "Minimum amount of traces needed: ", int(math.ceil(minTracesNeeded))
+    if(isKeyRight):
+        cipherString = "10:"
+        #create message to encrypt
+        for keyByteIndex in range(16):
+            keyByte = finalKey[keyByteIndex]
+            byteString = str(hex(keyByte)[2:].split("L")[0])
+            if(len(byteString) == 1):
+                byteString = "0" + byteString
+            cipherString = cipherString + byteString
+        minTracesNeeded = 3 + 8*((z**2)/(math.log((1+minimumMaxCorrelation)/ (1 - minimumMaxCorrelation)) **2))
+        print "Minimum amount of traces needed: ", int(math.ceil(minTracesNeeded))
+        print "Final key:", cipherString
+
+
+
 
 
 
