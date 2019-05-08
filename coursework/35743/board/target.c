@@ -83,8 +83,8 @@ int  octetstr_rd(       uint8_t* r, int n_r ) {
   }
   scale_uart_rd(SCALE_UART_MODE_BLOCKING); //CR
   //scale_uart_rd(SCALE_UART_MODE_BLOCKING); //LF
-  scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0D');//CR  for board & emulator
-  scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0A');//LF  for emulator
+  //scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0D');//CR  for board & emulator REMOVE WHEN USING BOARD
+  //scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0A');//LF  for emulator REMOVE WHEN USING BOARD
   return size;
 }
 
@@ -104,7 +104,7 @@ void octetstr_wr( const uint8_t* x, int n_x ) {
     scale_uart_wr(SCALE_UART_MODE_BLOCKING, hexToChar(x[i] % 0x10));
   }
   scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0D');//CR  for board & emulator
-  scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0A');//LF  for emulator
+  //scale_uart_wr(SCALE_UART_MODE_BLOCKING, '\x0A');//LF  for emulator REMOVE WITH BOARD
 }
 
 uint8_t xtime( uint8_t a ){

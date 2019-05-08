@@ -4,7 +4,7 @@
 # which can be found via http://creativecommons.org (and should be included as
 # LICENSE.txt within the associated archive or repository).
 
-import numpy, struct, sys, binascii, time, random, serial, argparse
+import numpy, struct, sys, binascii, time, random, serial, argparse, math
 import matplotlib.pyplot as plt
 import picoscope.ps2000a as ps2000a
 from Crypto.Cipher import AES
@@ -108,6 +108,23 @@ def traces_st( f, t, s, M, C, T ) :
   fd.close()
 
 
+## Convert a string (e.g., string, or bytearray) into a list (or sequence).
+##
+## \param[in] x  a  string
+## \return       a  list   r st. r[ i ] = ord( x[ i ] )
+
+def str2seq( x ) :
+  return          [ ord( t ) for t in x ]
+
+## Convert a list (or sequence) into a string (e.g., string, or bytearray).
+##
+## \param[in] x  a  list
+## \return       a  string r st. r[ i ] = chr( x[ i ] )
+
+def seq2str( x ) :
+  return ''.join( [ chr( t ) for t in x ] )
+
+
 def octetstr2str( x ) :
   t = x.split( ':' ) ; n = int( t[ 0 ], 16 ) ; x = binascii.a2b_hex( t[ 1 ] )
 
@@ -174,7 +191,7 @@ def checkKey(finalKey, M, C):
 
 
 def acquireTraces():
-    numberOfTraces = 100
+    numberOfTraces = 300
 
     parser = argparse.ArgumentParser()
 
@@ -210,9 +227,14 @@ def acquireTraces():
 
     time.sleep( 1 )
 
-    print("Traces acquiring: " + traceNumber)
+    print "Traces acquiring: ", numberOfTraces
+    board_wrln(fd, "01:00")
+    boardSizeMessage = board_rdln(fd) #size of message
+    boardSizeKey = board_rdln(fd) #size of key
+    boardSizeRandom = board_rdln(fd) #size of random
+    randomSize = str2seq(octetstr2str(boardSizeRandom))[0]
     for traceNumber in range(numberOfTraces):
-        print("tracenumber: "+ str(traceNumber))
+        print "tracenumber: ", traceNumber
         message = ""
 
         #create message to encrypt
@@ -230,7 +252,14 @@ def acquireTraces():
         print(uartMessage)
         board_wrln(fd, "01:01")
         board_wrln(fd, uartMessage)
-        board_wrln(fd, "06:000102030405")
+        randomString = "0" + str(hex(randomSize)[2:]) + ":"
+        for i in range(randomSize):
+            randomNum = random.randint(0,255)
+            randomByteString = str(hex(randomNum)[2:])
+            if(len(randomByteString) == 1):
+                randomByteString = "0" + randomByteString
+            randomString = randomString + randomByteString
+        board_wrln(fd, randomString)
         cipher = board_rdln(fd)
         cipherString = str(cipher[3:])
 
@@ -288,11 +317,15 @@ def attack( argc, argv):
     else:
         print("Acquiring own traces")
         numberOfTraces, noOfSamplesInTrace, M, C, T = acquireTraces()
-
-    noOfSamplesUsed = numberOfTraces
+    print("Starting attack")
+    if(numberOfTraces > 250):
+        noOfSamplesUsed = 250
+    else:
+        noOfSamplesUsed = numberOfTraces
     finalKey = []
+    minimumMaxCorrelation = 1
     for keyByte in range (16):
-        print("Keybyte index: ", keyByte)
+        print "Keybyte index: ", keyByte
         hypotheticalConsumptions = numpy.zeros((256, noOfSamplesUsed))
         for keyHypothesis in range(256):
             for sampleNumber in range(noOfSamplesUsed):
@@ -301,13 +334,20 @@ def attack( argc, argv):
         correlations = numpy.abs(corr2_coeff(hypotheticalConsumptions, T[:noOfSamplesUsed, :].T))
 
         keyFound = numpy.nanargmax(numpy.nanmax(correlations, axis = 1))
+        maxcorrelation  = (numpy.nanmax(numpy.nanmax(correlations, axis = 1)))
+        if(maxcorrelation < minimumMaxCorrelation):
+            minimumMaxCorrelation = maxcorrelation
         finalKey.append(keyFound)
-        print("Key byte: ", hex(keyFound), "\n")
+        print "Key byte: ", hex(keyFound)[:-1], "\n"
 
     print("Final Key:")
     print(finalKey)
 
+    z= 3.719
     checkKey(finalKey, M[0,:], C[0,:])
+    minTracesNeeded = 3 + 8*((z**2)/(math.log((1+minimumMaxCorrelation)/ (1 - minimumMaxCorrelation)) **2))
+    print "Amount of traces used: " , noOfSamplesUsed
+    print "Minimum amount of traces needed: ", int(math.ceil(minTracesNeeded))
 
 
 
