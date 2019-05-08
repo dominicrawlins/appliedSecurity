@@ -39,6 +39,8 @@
 
     uint8_t sboxMasked[256];
 
+    uint8_t sboxSwitch[8];
+
 
   uint8_t charToHex(char in){
     if(in > 64 && in < 71){
@@ -147,6 +149,9 @@ void calculateSboxMasked(){
   }
 }
 
+
+//XOR numbers together to create masks. if want to xor one number with others repeat values with different masks. if just want to xor one set of masks
+// use other masks = 0 as x ^ 0 = x.
 void mask(uint8_t* c, uint8_t maskone, uint8_t masktwo, uint8_t maskthree, uint8_t maskfour, uint8_t maskfive, uint8_t masksix, uint8_t maskseven, uint8_t maskeight){
 	for(int i = 0; i< 4; i++){
 		c[(i*4)]	= c[(i*4)] ^ (maskone ^ maskfive);
@@ -208,8 +213,15 @@ void mask(uint8_t* c, uint8_t maskone, uint8_t masktwo, uint8_t maskthree, uint8
   }
 
   void aes_enc_rnd_sub( uint8_t* s ){
+    uint8_t switchNumbers[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+    for(int sno = 0; sno < 4; sno++){
+      uint8_t temp = switchNumbers[sboxSwitch[sno*2]];
+      switchNumbers[sboxSwitch[sno*2]] = switchNumbers[sboxSwitch[(sno*2)+1]];
+      switchNumbers[sboxSwitch[(sno*2)+1]] = temp;
+
+    }
     for(int i = 0; i < 16; i++){
-      s[i] = sboxMasked[(s[i])];
+      s[switchNumbers[i]] = sboxMasked[(s[switchNumbers[i]])];
     }
   }
 
@@ -251,6 +263,9 @@ void mask(uint8_t* c, uint8_t maskone, uint8_t masktwo, uint8_t maskthree, uint8
 void aes_init(                                uint8_t* k, const uint8_t* r ) {
   for(int i = 0; i < 4; i++){
     masks[i] = r[i];
+    uint8_t random = r[i+6];
+    sboxSwitch[i*2] = random / 16;
+    sboxSwitch[(i*2) + 1] = random % 16;
   }
   bigM = r[4];
   bigMPrime = r[5];
